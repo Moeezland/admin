@@ -12,7 +12,7 @@
       color: #e5e7eb;
       margin: 0;
       padding: 30px;
-      display: none; /* 🔒 hidden until admin verified */
+      display: none;
     }
 
     h1 { margin-bottom: 5px; }
@@ -25,40 +25,22 @@
       margin-bottom: 30px;
     }
 
-    .stat-card {
+    .stat-card, .card, .error-card {
       background: #020617;
-      border-radius: 12px;
-      padding: 20px;
+      border-radius: 14px;
       border: 1px solid #1e293b;
-    }
-
-    .stat-card h2 {
-      font-size: 28px;
-      margin: 0;
-    }
-
-    .stat-card p {
-      color: #94a3b8;
-      margin-top: 5px;
+      padding: 25px;
+      max-width: 720px;
     }
 
     input {
       width: 100%;
       padding: 14px;
-      font-size: 16px;
       border-radius: 10px;
       border: 1px solid #334155;
       background: #020617;
       color: white;
       margin-bottom: 20px;
-    }
-
-    .card {
-      background: #020617;
-      border-radius: 14px;
-      border: 1px solid #1e293b;
-      padding: 25px;
-      max-width: 700px;
     }
 
     label {
@@ -79,11 +61,35 @@
     }
 
     .hidden { display: none; }
-    .error { color: #f87171; margin-top: 10px; }
+
+    .error-card h2 {
+      color: #f87171;
+      margin-top: 0;
+    }
+
+    .error-card p {
+      color: #cbd5f5;
+      line-height: 1.6;
+    }
   </style>
 </head>
 
 <body>
+
+<!-- ❌ NOT ADMIN -->
+<div id="accessDenied" class="error-card hidden">
+  <h2>Access denied</h2>
+  <p>
+    This section is restricted to authorized administrators of the
+    <strong>Moeezland Population Service</strong>.
+  </p>
+  <p>
+    Your account does not have administrative privileges.
+  </p>
+</div>
+
+<!-- ✅ ADMIN CONTENT -->
+<div id="adminContent" class="hidden">
 
   <h1>Admin Dashboard</h1>
   <div class="subtitle">Moeezland Population Service — Internal Access</div>
@@ -126,145 +132,119 @@
     <button id="saveBtn">Save Changes</button>
   </div>
 
-  <div id="errorMsg" class="error"></div>
+  <div id="errorMsg"></div>
 
-  <!-- 🔥 FIREBASE (CORRECT WAY) -->
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-    import {
-      getFirestore, collection, getDocs, query, where,
-      getDoc, updateDoc, doc
-    } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+</div>
 
-    // ✅ YOUR CONFIG (UNCHANGED)
-    const firebaseConfig = {
-      apiKey: "AIzaSyCs-pheSxe9bkAqnhG9qOjF7RvFfb9k00A",
-      authDomain: "e-civilian-portal2007.firebaseapp.com",
-      projectId: "e-civilian-portal2007",
-      storageBucket: "e-civilian-portal2007.firebasestorage.app",
-      messagingSenderId: "465001179759",
-      appId: "1:465001179759:web:60a45e286fbf1a39ac7b9a"
-    };
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+  import {
+    getFirestore, collection, getDocs, query, where,
+    updateDoc, doc
+  } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
+  const firebaseConfig = {
+    apiKey: "AIzaSyCs-pheSxe9bkAqnhG9qOjF7RvFfb9k00A",
+    authDomain: "e-civilian-portal2007.firebaseapp.com",
+    projectId: "e-civilian-portal2007",
+    storageBucket: "e-civilian-portal2007.firebasestorage.app",
+    messagingSenderId: "465001179759",
+    appId: "1:465001179759:web:60a45e286fbf1a39ac7b9a"
+  };
 
-    // 🔐 ADMIN GUARD
-    onAuthStateChanged(auth, async (user) => {
-      if (!user) {
-        window.location.href = "https://portal.moeezland.com";
-        return;
-      }
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
 
-      import { query, where, getDocs } from
-  "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+  const adminUI = document.getElementById("adminContent");
+  const deniedUI = document.getElementById("accessDenied");
 
-onAuthStateChanged(auth, async (user) => {
-  if (!user) {
-    window.location.href = "https://portal.moeezland.com";
-    return;
-  }
+  let currentRef = null;
 
-  const q = query(
-    collection(db, "users"),
-    where("uid", "==", user.uid)
-  );
+  onAuthStateChanged(auth, async (user) => {
+    document.body.style.display = "block";
 
-  const snap = await getDocs(q);
-
-  if (snap.empty) {
-    await signOut(auth);
-    alert("Access denied.");
-    window.location.href = "https://portal.moeezland.com";
-    return;
-  }
-
-  const userData = snap.docs[0].data();
-
-  if (userData.role !== "admin") {
-    await signOut(auth);
-    alert("Admins only.");
-    window.location.href = "https://portal.moeezland.com";
-    return;
-  }
-
-  // ✅ ADMIN VERIFIED
-  document.body.style.display = "block";
-  loadStats();
-});
-
-      document.body.style.display = "block";
-      loadStats();
-    });
-
-    async function loadStats() {
-      const civilSnap = await getDocs(collection(db, "civil_ids"));
-      document.getElementById("totalCitizens").innerText = civilSnap.size;
-
-      let used = 0;
-      civilSnap.forEach(d => d.data().used === true && used++);
-      document.getElementById("registeredUsers").innerText = used;
+    if (!user) {
+      deniedUI.classList.remove("hidden");
+      return;
     }
 
-    const searchInput = document.getElementById("searchInput");
-    const card = document.getElementById("resultCard");
-    const errorMsg = document.getElementById("errorMsg");
-    let currentRef = null;
+    const q = query(collection(db, "users"), where("uid", "==", user.uid));
+    const snap = await getDocs(q);
 
-    searchInput.addEventListener("keydown", async (e) => {
-      if (e.key !== "Enter") return;
+    if (snap.empty || snap.docs[0].data().role !== "admin") {
+      deniedUI.classList.remove("hidden");
+      return;
+    }
 
-      card.classList.add("hidden");
-      errorMsg.innerText = "";
-      const value = searchInput.value.trim();
+    // ✅ ADMIN VERIFIED
+    adminUI.classList.remove("hidden");
+    loadStats();
+  });
 
-      const users = collection(db, "users");
-      const checks = [
-        query(users, where("civilId", "==", value)),
-        query(users, where("email", "==", value)),
-        query(users, where("username", "==", value))
-      ];
+  async function loadStats() {
+    const civilSnap = await getDocs(collection(db, "civil_ids"));
+    totalCitizens.innerText = civilSnap.size;
 
-      let found = null;
-      for (const q of checks) {
-        const snap = await getDocs(q);
-        if (!snap.empty) { found = snap.docs[0]; break; }
-      }
+    let used = 0;
+    civilSnap.forEach(d => d.data().used === true && used++);
+    registeredUsers.innerText = used;
+  }
 
-      if (!found) {
-        errorMsg.innerText = "No record found.";
-        return;
-      }
+  searchInput.addEventListener("keydown", async (e) => {
+    if (e.key !== "Enter") return;
 
-      const d = found.data();
-      currentRef = doc(db, "users", found.id);
+    resultCard.classList.add("hidden");
+    errorMsg.innerText = "";
 
-      legalName.value = d.legalName || "";
-      civilId.value = d.civilId || "";
-      email.value = d.email || "";
-      username.value = d.username || "";
-      sex.value = d.sex || "";
-      phone.value = d.phone || "";
-      dob.value = d.dob || "";
+    const val = searchInput.value.trim();
+    const users = collection(db, "users");
 
-      card.classList.remove("hidden");
+    const qs = [
+      query(users, where("civilId", "==", val)),
+      query(users, where("email", "==", val)),
+      query(users, where("username", "==", val))
+    ];
+
+    let found = null;
+    for (const q of qs) {
+      const s = await getDocs(q);
+      if (!s.empty) { found = s.docs[0]; break; }
+    }
+
+    if (!found) {
+      errorMsg.innerText = "No record found.";
+      return;
+    }
+
+    const d = found.data();
+    currentRef = doc(db, "users", found.id);
+
+    legalName.value = d.legalName || "";
+    civilId.value = d.civilId || "";
+    email.value = d.email || "";
+    username.value = d.username || "";
+    sex.value = d.sex || "";
+    phone.value = d.phone || "";
+    dob.value = d.dob || "";
+
+    resultCard.classList.remove("hidden");
+  });
+
+  saveBtn.onclick = async () => {
+    if (!currentRef) return;
+
+    await updateDoc(currentRef, {
+      legalName: legalName.value.trim(),
+      sex: sex.value.trim(),
+      phone: phone.value.trim(),
+      dob: dob.value
     });
 
-    saveBtn.onclick = async () => {
-      if (!currentRef) return;
+    alert("Citizen record updated.");
+  };
+</script>
 
-      await updateDoc(currentRef, {
-        legalName: legalName.value.trim(),
-        sex: sex.value.trim(),
-        phone: phone.value.trim(),
-        dob: dob.value
-      });
-
-      alert("Record updated.");
-    };
-  </script>
 </body>
 </html>
-
