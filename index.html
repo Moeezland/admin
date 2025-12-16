@@ -158,13 +158,42 @@
         return;
       }
 
-      const snap = await getDoc(doc(db, "users", user.uid));
-      if (!snap.exists() || snap.data().role !== "admin") {
-        await signOut(auth);
-        alert("Admins only.");
-        window.location.href = "https://portal.moeezland.com";
-        return;
-      }
+      import { query, where, getDocs } from
+  "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+onAuthStateChanged(auth, async (user) => {
+  if (!user) {
+    window.location.href = "https://portal.moeezland.com";
+    return;
+  }
+
+  const q = query(
+    collection(db, "users"),
+    where("uid", "==", user.uid)
+  );
+
+  const snap = await getDocs(q);
+
+  if (snap.empty) {
+    await signOut(auth);
+    alert("Access denied.");
+    window.location.href = "https://portal.moeezland.com";
+    return;
+  }
+
+  const userData = snap.docs[0].data();
+
+  if (userData.role !== "admin") {
+    await signOut(auth);
+    alert("Admins only.");
+    window.location.href = "https://portal.moeezland.com";
+    return;
+  }
+
+  // ✅ ADMIN VERIFIED
+  document.body.style.display = "block";
+  loadStats();
+});
 
       document.body.style.display = "block";
       loadStats();
@@ -238,3 +267,4 @@
   </script>
 </body>
 </html>
+
