@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Moeezland Admin Login</title>
+  <title>Moeezland Admin</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <style>
@@ -10,62 +10,107 @@
       font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
       background: #020617;
       color: #e5e7eb;
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    .container {
+      background: #0f172a;
+      border: 1px solid #1e293b;
+      border-radius: 18px;
+      padding: 28px;
+      width: 100%;
+      max-width: 420px;
+    }
+
+    /* Logo / Image placeholder */
+    .logo {
+      width: 120px;
+      height: 120px;
+      border-radius: 14px;
+      background: #020617;
+      border: 1px dashed #334155;
       display: flex;
       align-items: center;
       justify-content: center;
-      height: 100vh;
-      margin: 0;
+      margin-bottom: 24px;
     }
 
-    .box {
-      background: #0f172a;
-      border: 1px solid #1e293b;
-      border-radius: 14px;
-      padding: 30px;
-      width: 100%;
-      max-width: 420px;
+    .logo span {
+      font-size: 13px;
+      color: #64748b;
+      text-align: center;
+      padding: 10px;
     }
 
     input {
       width: 100%;
       padding: 14px;
-      margin-top: 12px;
-      border-radius: 10px;
+      margin-top: 14px;
+      border-radius: 12px;
       border: 1px solid #334155;
       background: #020617;
       color: white;
+      font-size: 15px;
+    }
+
+    input::placeholder {
+      color: #94a3b8;
     }
 
     button {
       width: 100%;
-      margin-top: 20px;
+      margin-top: 22px;
       padding: 14px;
-      border-radius: 10px;
+      border-radius: 12px;
       border: none;
       background: #2563eb;
       color: white;
       font-size: 16px;
+      font-weight: 500;
       cursor: pointer;
+    }
+
+    button:hover {
+      background: #1d4ed8;
     }
 
     .error {
       color: #f87171;
-      margin-top: 12px;
+      margin-top: 14px;
+      font-size: 14px;
+    }
+
+    @media (max-width: 480px) {
+      .logo {
+        width: 100px;
+        height: 100px;
+      }
     }
   </style>
 </head>
 
 <body>
 
-<div class="box">
-  <h2>Admin Login</h2>
-  <p>Moeezland Population Service</p>
+<div class="container">
 
-  <input id="email" type="email" placeholder="Email">
+  <!-- 🖼️ Logo placeholder -->
+  <div class="logo">
+    <!-- Replace span with <img src="logo.png"> later -->
+    <span>Admin<br>Portal</span>
+  </div>
+
+  <input id="email" type="email" placeholder="Email address">
   <input id="password" type="password" placeholder="Password">
 
   <button id="loginBtn">Sign in</button>
+
   <div id="error" class="error"></div>
+
 </div>
 
 <script type="module">
@@ -92,7 +137,6 @@
     error.innerText = "";
 
     try {
-      // 1️⃣ AUTHENTICATE
       const cred = await signInWithEmailAndPassword(
         auth,
         email.value.trim(),
@@ -101,7 +145,6 @@
 
       const uid = cred.user.uid;
 
-      // 2️⃣ CHECK civil_ids FOR ADMIN ROLE
       const q = query(
         collection(db, "civil_ids"),
         where("uid", "==", uid),
@@ -115,7 +158,6 @@
         return;
       }
 
-      // ✅ ADMIN CONFIRMED
       window.location.href = "dashboard.html";
 
     } catch (e) {
