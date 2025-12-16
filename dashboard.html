@@ -15,21 +15,20 @@
     color: #e5e7eb;
   }
 
+  .hidden { display: none; }
+
   .page {
     max-width: 1100px;
     margin: auto;
     padding: 24px 16px 60px;
   }
 
-  .hidden { display: none; }
-
-  /* HEADER */
   .topbar {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    flex-wrap: wrap;
     gap: 12px;
+    flex-wrap: wrap;
     margin-bottom: 24px;
   }
 
@@ -45,22 +44,6 @@
     cursor: pointer;
   }
 
-  /* ACCESS DENIED */
-  .access-denied {
-    max-width: 520px;
-    margin: 100px auto;
-    background: #0f172a;
-    border: 1px solid #7f1d1d;
-    border-radius: 14px;
-    padding: 24px;
-  }
-
-  .access-denied h2 {
-    color: #f87171;
-    margin-top: 0;
-  }
-
-  /* STATS */
   .stats {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -76,9 +59,8 @@
   }
 
   .stat h2 { margin: 0; font-size: 26px; }
-  .stat p { margin: 4px 0 0; font-size: 13px; color: #94a3b8; }
+  .stat p { margin-top: 4px; font-size: 13px; color: #94a3b8; }
 
-  /* SEARCH */
   #searchInput {
     width: 100%;
     max-width: 420px;
@@ -92,7 +74,6 @@
     margin-bottom: 18px;
   }
 
-  /* CARD */
   .card {
     background: #0f172a;
     border: 1px solid #1e293b;
@@ -121,7 +102,7 @@
 
   input[disabled] { opacity: .6; }
 
-  button.save {
+  .save {
     margin-top: 10px;
     height: 40px;
     padding: 0 18px;
@@ -129,7 +110,6 @@
     border: none;
     border-radius: 8px;
     color: white;
-    font-size: 14px;
     cursor: pointer;
   }
 
@@ -138,18 +118,30 @@
     font-size: 13px;
     margin-top: 8px;
   }
+
+  .access-denied {
+    max-width: 520px;
+    margin: 100px auto;
+    background: #0f172a;
+    border: 1px solid #7f1d1d;
+    border-radius: 14px;
+    padding: 24px;
+  }
+
+  .access-denied h2 {
+    color: #f87171;
+    margin-top: 0;
+  }
 </style>
 </head>
 
 <body>
 
-<!-- ACCESS DENIED -->
 <div id="denied" class="access-denied hidden">
   <h2>Access denied</h2>
   <p>Authorized administrators only.</p>
 </div>
 
-<!-- DASHBOARD -->
 <div id="dashboard" class="hidden">
   <div class="page">
 
@@ -206,23 +198,31 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
   import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-  import { getFirestore, collection, getDocs, query, where, updateDoc, doc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+  import {
+    getFirestore, collection, getDocs, query, where, updateDoc, doc
+  } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-  const firebaseConfig = {
+  const app = initializeApp({
     apiKey: "AIzaSyCs-pheSxe9bkAqnhG9qOjF7RvFfb9k00A",
     authDomain: "e-civilian-portal2007.firebaseapp.com",
-    projectId: "e-civilian-portal2007",
-    storageBucket: "e-civilian-portal2007.firebasestorage.app",
-    messagingSenderId: "465001179759",
-    appId: "1:465001179759:web:60a45e286fbf1a39ac7b9a"
-  };
+    projectId: "e-civilian-portal2007"
+  });
 
-  const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
   const db = getFirestore(app);
 
+  // DOM
   const dashboard = document.getElementById("dashboard");
   const denied = document.getElementById("denied");
+  const totalCitizens = document.getElementById("totalCitizens");
+  const registeredUsers = document.getElementById("registeredUsers");
+  const searchInput = document.getElementById("searchInput");
+  const resultCard = document.getElementById("resultCard");
+  const saveBtn = document.getElementById("saveBtn");
+  const logoutBtn = document.getElementById("logoutBtn");
+  const errorMsg = document.getElementById("errorMsg");
+
+  let currentDoc = null;
 
   onAuthStateChanged(auth, async (user) => {
     if (!user) {
@@ -230,10 +230,11 @@
       return;
     }
 
-    const q = query(collection(db, "users"), where("uid", "==", user.uid));
-    const snap = await getDocs(q);
+    const adminCheck = await getDocs(
+      query(collection(db, "users"), where("uid", "==", user.uid))
+    );
 
-    if (snap.empty || snap.docs[0].data().role !== "admin") {
+    if (adminCheck.empty || adminCheck.docs[0].data().role !== "admin") {
       denied.classList.remove("hidden");
       return;
     }
@@ -244,12 +245,64 @@
 
   async function loadStats() {
     const civilSnap = await getDocs(collection(db, "civil_ids"));
-    totalCitizens.innerText = civilSnap.size;
+    totalCitizens.textContent = civilSnap.size;
 
     let used = 0;
     civilSnap.forEach(d => d.data().used === true && used++);
-    registeredUsers.innerText = used;
+    registeredUsers.textContent = used;
   }
+
+  searchInput.addEventListener("keydown", async (e) => {
+    if (e.key !== "Enter") return;
+
+    resultCard.classList.add("hidden");
+    errorMsg.textContent = "";
+
+    const value = searchInput.value.trim();
+    if (!value) return;
+
+    const usersRef = collection(db, "users");
+    const queries = [
+      query(usersRef, where("civilId", "==", value)),
+      query(usersRef, where("email", "==", value)),
+      query(usersRef, where("username", "==", value))
+    ];
+
+    for (const q of queries) {
+      const snap = await getDocs(q);
+      if (!snap.empty) {
+        const d = snap.docs[0];
+        currentDoc = doc(db, "users", d.id);
+
+        const data = d.data();
+        legalName.value = data.legalName || "";
+        civilId.value = data.civilId || "";
+        email.value = data.email || "";
+        username.value = data.username || "";
+        sex.value = data.sex || "";
+        phone.value = data.phone || "";
+        dob.value = data.dob || "";
+
+        resultCard.classList.remove("hidden");
+        return;
+      }
+    }
+
+    errorMsg.textContent = "No record found.";
+  });
+
+  saveBtn.onclick = async () => {
+    if (!currentDoc) return;
+
+    await updateDoc(currentDoc, {
+      legalName: legalName.value,
+      sex: sex.value,
+      phone: phone.value,
+      dob: dob.value
+    });
+
+    alert("Citizen record updated.");
+  };
 
   logoutBtn.onclick = async () => {
     await signOut(auth);
