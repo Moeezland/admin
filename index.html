@@ -2,147 +2,91 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Moeezland Admin Portal</title>
+  <title>Moeezland Admin Login</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <style>
     body {
       font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-      background: #0f172a;
-      color: #e5e7eb;
-      margin: 0;
-      padding: 30px;
-      display: none;
-    }
-
-    h1 { margin-bottom: 5px; }
-    .subtitle { color: #94a3b8; margin-bottom: 30px; }
-
-    .stats {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 20px;
-      margin-bottom: 30px;
-    }
-
-    .stat-card, .card, .error-card {
       background: #020617;
-      border-radius: 14px;
+      color: #e5e7eb;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+    }
+
+    .login-box {
+      background: #0f172a;
       border: 1px solid #1e293b;
-      padding: 25px;
-      max-width: 720px;
+      border-radius: 14px;
+      padding: 30px;
+      width: 100%;
+      max-width: 420px;
+    }
+
+    h1 {
+      margin-top: 0;
     }
 
     input {
       width: 100%;
       padding: 14px;
+      margin-top: 12px;
       border-radius: 10px;
       border: 1px solid #334155;
       background: #020617;
       color: white;
-      margin-bottom: 20px;
-    }
-
-    label {
-      font-size: 13px;
-      color: #94a3b8;
-      display: block;
-      margin-bottom: 4px;
+      font-size: 15px;
     }
 
     button {
+      width: 100%;
       margin-top: 20px;
-      padding: 12px 20px;
-      background: #2563eb;
-      border: none;
+      padding: 14px;
       border-radius: 10px;
+      border: none;
+      background: #2563eb;
       color: white;
+      font-size: 16px;
       cursor: pointer;
     }
 
-    .hidden { display: none; }
-
-    .error-card h2 {
+    .error {
       color: #f87171;
-      margin-top: 0;
+      margin-top: 12px;
     }
 
-    .error-card p {
-      color: #cbd5f5;
-      line-height: 1.6;
+    .note {
+      margin-top: 15px;
+      font-size: 13px;
+      color: #94a3b8;
     }
   </style>
 </head>
 
 <body>
 
-<!-- ❌ NOT ADMIN -->
-<div id="accessDenied" class="error-card hidden">
-  <h2>Access denied</h2>
-  <p>
-    This section is restricted to authorized administrators of the
-    <strong>Moeezland Population Service</strong>.
-  </p>
-  <p>
-    Your account does not have administrative privileges.
-  </p>
-</div>
+<div class="login-box">
+  <h1>Admin Login</h1>
+  <p>Moeezland Population Service</p>
 
-<!-- ✅ ADMIN CONTENT -->
-<div id="adminContent" class="hidden">
+  <input id="email" type="email" placeholder="Admin email">
+  <input id="password" type="password" placeholder="Password">
 
-  <h1>Admin Dashboard</h1>
-  <div class="subtitle">Moeezland Population Service — Internal Access</div>
+  <button id="loginBtn">Sign in</button>
 
-  <div class="stats">
-    <div class="stat-card">
-      <h2 id="totalCitizens">–</h2>
-      <p>Total Civil IDs</p>
-    </div>
-    <div class="stat-card">
-      <h2 id="registeredUsers">–</h2>
-      <p>Registered Portal Accounts</p>
-    </div>
+  <div id="error" class="error"></div>
+
+  <div class="note">
+    Authorized administrators only.
   </div>
-
-  <input id="searchInput" placeholder="Search by Civil ID, Email, or Username (exact match)">
-
-  <div id="resultCard" class="card hidden">
-    <label>Full Legal Name</label>
-    <input id="legalName">
-
-    <label>Civil ID</label>
-    <input id="civilId" disabled>
-
-    <label>Email</label>
-    <input id="email" disabled>
-
-    <label>Username</label>
-    <input id="username" disabled>
-
-    <label>Gender</label>
-    <input id="sex">
-
-    <label>Phone</label>
-    <input id="phone">
-
-    <label>Date of Birth</label>
-    <input id="dob" type="date">
-
-    <button id="saveBtn">Save Changes</button>
-  </div>
-
-  <div id="errorMsg"></div>
-
 </div>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-  import {
-    getFirestore, collection, getDocs, query, where,
-    updateDoc, doc
-  } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+  import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyCs-pheSxe9bkAqnhG9qOjF7RvFfb9k00A",
@@ -155,94 +99,21 @@
 
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
-  const db = getFirestore(app);
 
-  const adminUI = document.getElementById("adminContent");
-  const deniedUI = document.getElementById("accessDenied");
+  loginBtn.onclick = async () => {
+    error.innerText = "";
 
-  let currentRef = null;
+    try {
+      await signInWithEmailAndPassword(
+        auth,
+        email.value.trim(),
+        password.value
+      );
 
-  onAuthStateChanged(auth, async (user) => {
-    document.body.style.display = "block";
-
-    if (!user) {
-      deniedUI.classList.remove("hidden");
-      return;
+      window.location.href = "dashboard.html";
+    } catch (e) {
+      error.innerText = "Invalid credentials or access denied.";
     }
-
-    const q = query(collection(db, "users"), where("uid", "==", user.uid));
-    const snap = await getDocs(q);
-
-    if (snap.empty || snap.docs[0].data().role !== "admin") {
-      deniedUI.classList.remove("hidden");
-      return;
-    }
-
-    // ✅ ADMIN VERIFIED
-    adminUI.classList.remove("hidden");
-    loadStats();
-  });
-
-  async function loadStats() {
-    const civilSnap = await getDocs(collection(db, "civil_ids"));
-    totalCitizens.innerText = civilSnap.size;
-
-    let used = 0;
-    civilSnap.forEach(d => d.data().used === true && used++);
-    registeredUsers.innerText = used;
-  }
-
-  searchInput.addEventListener("keydown", async (e) => {
-    if (e.key !== "Enter") return;
-
-    resultCard.classList.add("hidden");
-    errorMsg.innerText = "";
-
-    const val = searchInput.value.trim();
-    const users = collection(db, "users");
-
-    const qs = [
-      query(users, where("civilId", "==", val)),
-      query(users, where("email", "==", val)),
-      query(users, where("username", "==", val))
-    ];
-
-    let found = null;
-    for (const q of qs) {
-      const s = await getDocs(q);
-      if (!s.empty) { found = s.docs[0]; break; }
-    }
-
-    if (!found) {
-      errorMsg.innerText = "No record found.";
-      return;
-    }
-
-    const d = found.data();
-    currentRef = doc(db, "users", found.id);
-
-    legalName.value = d.legalName || "";
-    civilId.value = d.civilId || "";
-    email.value = d.email || "";
-    username.value = d.username || "";
-    sex.value = d.sex || "";
-    phone.value = d.phone || "";
-    dob.value = d.dob || "";
-
-    resultCard.classList.remove("hidden");
-  });
-
-  saveBtn.onclick = async () => {
-    if (!currentRef) return;
-
-    await updateDoc(currentRef, {
-      legalName: legalName.value.trim(),
-      sex: sex.value.trim(),
-      phone: phone.value.trim(),
-      dob: dob.value
-    });
-
-    alert("Citizen record updated.");
   };
 </script>
 
