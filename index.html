@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Moeezland Admin</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      background: radial-gradient(1200px 600px at top, #0b1220, #020617);
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      color: #e5e7eb;
+    }
+
+    .container {
+      background: linear-gradient(180deg, #0f172a, #020617);
+      border: 1px solid #1e293b;
+      border-radius: 20px;
+      padding: 26px;
+      width: 100%;
+      max-width: 420px;
+      box-shadow: 0 20px 60px rgba(0,0,0,.45);
+    }
+
+    .logo {
+      width: 100%;
+      height: 160px;
+      border-radius: 16px;
+      overflow: hidden;
+      margin-bottom: 22px;
+      background: #020617;
+      border: 1px solid #1e293b;
+    }
+
+    .logo img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    input {
+      width: 100%;
+      padding: 14px 16px;
+      margin-top: 14px;
+      border-radius: 14px;
+      border: 1px solid #334155;
+      background: #020617;
+      color: #e5e7eb;
+      font-size: 15px;
+    }
+
+    button {
+      width: 100%;
+      margin-top: 22px;
+      padding: 14px;
+      border-radius: 14px;
+      border: none;
+      background: #2563eb;
+      color: white;
+      font-size: 16px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+
+    .error {
+      color: #f87171;
+      margin-top: 14px;
+      font-size: 14px;
+      text-align: center;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="container">
+
+  <!-- IMAGE (DROP admin-image.png NEXT TO FILE) -->
+  <div class="logo">
+    <img src="admin-image.png" alt="">
+  </div>
+
+  <input id="username" type="text" placeholder="Username">
+  <input id="password" type="password" placeholder="Password">
+
+  <button id="loginBtn">Sign in</button>
+  <div id="error" class="error"></div>
+
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+  import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+  import {
+    getFirestore, collection, query, where, getDocs
+  } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyCs-pheSxe9bkAqnhG9qOjF7RvFfb9k00A",
+    authDomain: "e-civilian-portal2007.firebaseapp.com",
+    projectId: "e-civilian-portal2007",
+    storageBucket: "e-civilian-portal2007.firebasestorage.app",
+    messagingSenderId: "465001179759",
+    appId: "1:465001179759:web:60a45e286fbf1a39ac7b9a"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  loginBtn.onclick = async () => {
+    error.innerText = "";
+
+    try {
+      // 1️⃣ FIND USER BY USERNAME
+      const userSnap = await getDocs(
+        query(
+          collection(db, "users"),
+          where(
+            "username_lower",
+            "==",
+            username.value.trim().toLowerCase()
+          )
+        )
+      );
+
+
+      if (userSnap.empty) {
+        error.innerText = "Invalid username or password.";
+        return;
+      }
+
+      const userData = userSnap.docs[0].data();
+      const email = userData.email;
+
+      // 2️⃣ AUTH WITH EMAIL + PASSWORD
+      const cred = await signInWithEmailAndPassword(
+        auth,
+        email,
+        password.value
+      );
+
+      const uid = cred.user.uid;
+
+      // 3️⃣ CHECK ADMIN ROLE FROM civil_ids
+      const adminSnap = await getDocs(
+        query(
+          collection(db, "civil_ids"),
+          where("uid", "==", uid),
+          where("role", "==", "admin")
+        )
+      );
+
+      if (adminSnap.empty) {
+        error.innerText = "Access restricted to administrators.";
+        return;
+      }
+
+      // ✅ ADMIN VERIFIED
+      window.location.href = "dashboard.html";
+
+    } catch (e) {
+      error.innerText = "Invalid username or password.";
+    }
+  };
+</script>
+
+</body>
+</html>
