@@ -19,48 +19,41 @@ const db = getFirestore(app);
 
 // 🔢 Generate Sequential Visa ID
 async function generateVisaId(typeCode) {
-const year = "26"; // you can auto-generate later
-const counterRef = doc(db, "counters", `visa_${typeCode}_${year}`);
+  const year = "26";
+  const counterRef = doc(db, "counters", `visa_${typeCode}_${year}`);
 
-return await runTransaction(db, async (tx) => {
-const snap = await tx.get(counterRef);
+  return await runTransaction(db, async (tx) => {
+    const snap = await tx.get(counterRef);
 
-```
-let next = 1;
-if (snap.exists()) {
-  next = snap.data().last + 1;
-}
+    let next = 1;
+    if (snap.exists()) {
+      next = snap.data().last + 1;
+    }
 
-tx.set(counterRef, { last: next }, { merge: true });
+    tx.set(counterRef, { last: next }, { merge: true });
 
-const serial = String(next).padStart(6, "0");
-return `MOE${typeCode}${year}${serial}`;
-```
-
-});
+    const serial = String(next).padStart(6, "0");
+    return `MOE${typeCode}${year}${serial}`;
+  });
 }
 
 // 🔢 Generate Civil ID
 async function generateCivilId() {
-const counterRef = doc(db, "counters", "civil_id");
+  const counterRef = doc(db, "counters", "civil_id");
 
-return await runTransaction(db, async (tx) => {
-const snap = await tx.get(counterRef);
+  return await runTransaction(db, async (tx) => {
+    const snap = await tx.get(counterRef);
 
-```
-let next = 1;
-if (snap.exists()) {
-  next = snap.data().last + 1;
+    let next = 1;
+    if (snap.exists()) {
+      next = snap.data().last + 1;
+    }
+
+    tx.set(counterRef, { last: next }, { merge: true });
+
+    return "729" + String(next).padStart(7, "0");
+  });
 }
-
-tx.set(counterRef, { last: next }, { merge: true });
-
-return "729" + String(next).padStart(7, "0");
-```
-
-});
-}
-
 // ✈️ ISSUE VISA
 window.issueVisa = async () => {
 const eBorder = document.getElementById("eborder").value;
