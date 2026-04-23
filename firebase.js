@@ -34,7 +34,7 @@ if (snap.exists()) {
 tx.set(counterRef, { last: next }, { merge: true });
 
 const serial = String(next).padStart(6, "0");
-return `MOE${typeCode}${year}${serial}`;
+return return `MOE${typeCode}${year}${serial}`;
 ```
 
 });
